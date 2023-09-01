@@ -2,26 +2,47 @@
 Cleyton Farias
 August, 2023
 
-## Getting Started <a name="getting-started"></a>
+### Pré-requisitos <a name="prerequisites"></a>
 
-### Prerequisitos <a name="prerequisites"></a>
+Este repositório contém scripts escritos em Python. Para configurar
+todas asdependências, é essencial que você utilize a ferramenta de
+gerenciamento de ambiente virtual do Python chamada
+[`pipenv`](https://pipenv.pypa.io/en/latest/).
 
-This repository contains scripts written in Python. In order to set up
-all dependencies, it is essential you to use the Python virtualenv
-management tool [`pipenv`](https://pipenv.pypa.io/en/latest/).
-
-Once you clone this repository, go the respective directory. There will
-be a file called `Pipfile.lock` specifying all the dependencies used.
-Open a terminal and run the following command:
+Após clonar este repositório, acesse o diretório correspondente. Haverá
+um arquivo chamado `Pipfile.lock` especificando todas as dependências
+utilizadas. Abra um terminal e execute o seguinte comando:
 
     pipenv sync
 
-This command will install all the packages and their respective versions
-necessary to run the scripts.
+Este comando irá instalar todos os pacotes e suas respectivas versões
+necessárias para executar os scripts.
 
 ## Credit Card Fraud Detection
 
-## Data
+Este exercício consiste no desenvolvimento de um sistema simples para
+detectar fraudes em transações com cartão de crédito, utilizando dados
+simulados.
+
+Por meio da aplicação de algoritmos de *machine learning* e uma
+estratégia de estimação que considera o aspecto temporal do problema,
+foi possível criar uma abordagem sólida e confiável para estimar o
+desempenho dos algoritmos e prever casos futuros.
+
+Por fim, foi explorado como esse sistema pode ser implementado em
+produção, transformando-o em uma RESTful API.
+
+## Conteúdo
+
+- [Data](#data)
+  - [Data Understanding](#data-understanding)
+  - [Feature Engineering](#feature-engineering)
+- [Data Preparation](#data-preparation)
+- [Modelling](#modelling)
+- [Evaluation](#evaluation)
+- [Deployment](#deployment)
+
+## Data <a name="data"></a>
 
 Dados públicos sobre transações reais de cartões de crédito são bastante
 raros. Existe apenas uma [base de dados
@@ -90,7 +111,7 @@ transactions_df.head(5)
 
 </div>
 
-## Data Understanding
+## Data Understanding <a name="data-understanding"></a>
 
 A base de dados contém 959,229 transações com cartão de crédito, durante
 o período `2023-08-01` até `2023-09-08`, com as seguintes variáveis[^2]:
@@ -115,7 +136,7 @@ transactions_df["TX_FRAUD"].mean()
 
     0.00793762490500183
 
-### Feature Engineering:
+### Feature Engineering <a name="feature-engineering"></a>
 
 Como podemos observar, o conjunto de dados apresenta uma distribuição
 bastante desbalanceada em relação aos casos de fraudes. Apenas 0.07% das
@@ -426,7 +447,7 @@ transactions_df.groupby("TX_FRAUD")[[ 'TERMINAL_ID_NB_TX_1DAY_WINDOW',
 Como podemos ver, transações fraudelentas apresentam uma relação com as
 variáveis de risco de cada terminal.
 
-## Data Preparation
+## Data Preparation <a name="data-preparation"></a>
 
 Agora que temos a base de dados de transação, verificamos a distribuicao
 de nossa variável de interesse e extraímos novas características a
@@ -574,7 +595,7 @@ y_test = test_df[output_feature]
 X_test = test_df[input_features]
 ```
 
-## Modelling
+## Modelling <a name="modelling"></a>
 
 A detecção de fraudes é frequentemente tratada como um problema de
 classificação binária: um sistema de detecção de fraudes recebe
@@ -738,12 +759,12 @@ print(res)
 
                  clf       acc  f1_score     gmean       auc  average_precision
     0          dummy  0.992628  0.000000  0.000000  0.500000           0.007372
-    1           tree  0.994240  0.619048  0.795563  0.815896           0.386150
+    1           tree  0.994360  0.622273  0.792706  0.813648           0.390012
     2            knn  0.995903  0.631741  0.690383  0.792873           0.532729
-    3  GradientBoost  0.996434  0.725594  0.799343  0.866962           0.595451
+    3  GradientBoost  0.996434  0.725594  0.799343  0.866963           0.595534
     4       logistic  0.995868  0.637594  0.702017  0.875138           0.627553
-    5        bagging  0.997154  0.768802  0.801079  0.855920           0.681257
-    6             rf  0.996777  0.729107  0.766981  0.879542           0.697380
+    5        bagging  0.997000  0.754558  0.790841  0.851214           0.674920
+    6             rf  0.996777  0.729885  0.768489  0.885207           0.697627
 
 A tabela anterior mostra o performance dos algoritmos sobre a base de
 teste. Como podemos observar, o *dummy classifier* possui o pior
@@ -930,52 +951,13 @@ grid = GridSearchCV(
     scoring="average_precision",
     cv=sequential_split_indices,
     refit=False,
-    n_jobs=-1
-    #verbose=4
+    n_jobs=-1,
+    verbose=0
 )
 
 # fitting:
 grid.fit(transactions_df[input_features], transactions_df[output_feature])
 ```
-
-<style>#sk-container-id-1 {color: black;}#sk-container-id-1 pre{padding: 0;}#sk-container-id-1 div.sk-toggleable {background-color: white;}#sk-container-id-1 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-1 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-1 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-1 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-1 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-1 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-1 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-1 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-1 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-1 div.sk-item {position: relative;z-index: 1;}#sk-container-id-1 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-1 div.sk-item::before, #sk-container-id-1 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-1 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-1 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-1 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-1 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-1 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-1 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-1 div.sk-label-container {text-align: center;}#sk-container-id-1 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-1 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-1" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>GridSearchCV(cv=[([547185, 547186, 547187, 547188, 547189, 547190, 547191,
-                   547192, 547193, 547194, 547195, 547196, 547197, 547198,
-                   547199, 547200, 547201, 547202, 547203, 547204, 547205,
-                   547206, 547207, 547208, 547209, 547210, 547211, 547212,
-                   547213, 547214, ...],
-                  [680886, 680887, 680888, 680889, 680890, 680891, 680892,
-                   680893, 680894, 680895, 680896, 680897, 680898, 680899,
-                   680902, 680904, 680...
-                         {&#x27;clf&#x27;: [BaggingClassifier(n_estimators=200,
-                                                    random_state=10)],
-                          &#x27;clf__estimator&#x27;: [DecisionTreeClassifier(),
-                                             LogisticRegression()],
-                          &#x27;clf__max_features&#x27;: [1, 0.5]},
-                         {&#x27;clf&#x27;: [RandomForestClassifier(n_estimators=200,
-                                                         random_state=10)]},
-                         {&#x27;clf&#x27;: [GradientBoostingClassifier(learning_rate=0.05,
-                                                             random_state=10)],
-                          &#x27;clf__n_estimators&#x27;: [100, 200]}],
-             refit=False, scoring=&#x27;average_precision&#x27;)</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br />On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-1" type="checkbox" ><label for="sk-estimator-id-1" class="sk-toggleable__label sk-toggleable__label-arrow">GridSearchCV</label><div class="sk-toggleable__content"><pre>GridSearchCV(cv=[([547185, 547186, 547187, 547188, 547189, 547190, 547191,
-                   547192, 547193, 547194, 547195, 547196, 547197, 547198,
-                   547199, 547200, 547201, 547202, 547203, 547204, 547205,
-                   547206, 547207, 547208, 547209, 547210, 547211, 547212,
-                   547213, 547214, ...],
-                  [680886, 680887, 680888, 680889, 680890, 680891, 680892,
-                   680893, 680894, 680895, 680896, 680897, 680898, 680899,
-                   680902, 680904, 680...
-                         {&#x27;clf&#x27;: [BaggingClassifier(n_estimators=200,
-                                                    random_state=10)],
-                          &#x27;clf__estimator&#x27;: [DecisionTreeClassifier(),
-                                             LogisticRegression()],
-                          &#x27;clf__max_features&#x27;: [1, 0.5]},
-                         {&#x27;clf&#x27;: [RandomForestClassifier(n_estimators=200,
-                                                         random_state=10)]},
-                         {&#x27;clf&#x27;: [GradientBoostingClassifier(learning_rate=0.05,
-                                                             random_state=10)],
-                          &#x27;clf__n_estimators&#x27;: [100, 200]}],
-             refit=False, scoring=&#x27;average_precision&#x27;)</pre></div></div></div><div class="sk-parallel"><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-2" type="checkbox" ><label for="sk-estimator-id-2" class="sk-toggleable__label sk-toggleable__label-arrow">estimator: Pipeline</label><div class="sk-toggleable__content"><pre>Pipeline(steps=[(&#x27;imputer&#x27;, SimpleImputer()), (&#x27;scaling&#x27;, StandardScaler()),
-                (&#x27;clf&#x27;, LogisticRegression(max_iter=2000))])</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-3" type="checkbox" ><label for="sk-estimator-id-3" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer()</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-4" type="checkbox" ><label for="sk-estimator-id-4" class="sk-toggleable__label sk-toggleable__label-arrow">StandardScaler</label><div class="sk-toggleable__content"><pre>StandardScaler()</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-5" type="checkbox" ><label for="sk-estimator-id-5" class="sk-toggleable__label sk-toggleable__label-arrow">LogisticRegression</label><div class="sk-toggleable__content"><pre>LogisticRegression(max_iter=2000)</pre></div></div></div></div></div></div></div></div></div></div></div></div>
 
 Como especificado em `GridSearchCV`, eu setei `refit=False` para que não
 fosse reestimado a melhor configuração de modelo sobre todo o conjunto
@@ -1040,10 +1022,10 @@ idx, best_clf_config = get_bestModel(results)
 results.loc[idx]
 ```
 
-    mean_fit_time                                                       2.409108
-    std_fit_time                                                        0.340577
-    mean_score_time                                                     0.101539
-    std_score_time                                                      0.029761
+    mean_fit_time                                                       2.178353
+    std_fit_time                                                        0.190987
+    mean_score_time                                                      0.06542
+    std_score_time                                                      0.001052
     param_clf                  LogisticRegression(C=0.5, max_iter=2000, solve...
     param_clf__C                                                             0.5
     param_clf__penalty                                                        l2
@@ -1096,40 +1078,321 @@ para estimar algoritmos em suas diversas configurações e também para
 obter uma estimativa confiável acerca da performance futura do
 algoritmo.
 
-## Evaluation
+## Evaluation <a name="evaluation"></a>
 
-Após desenvolver um modelo que aparenta ter um bom nível de qualidade
-(na perspectiva técnica), é fundamental conduzir uma avaliação
-abrangente para assegurar que o modelo atinje efetivamente os objetivos
-de negócio antes de avançar para a implantação final. Um ponto crucial é
-determinar se há alguma questão de relevância de empresarial que não
-tenha recebido a devida consideração ao longo do processo.
+Após desenvolver um modelo com um bom nível de qualidade (na perspectiva
+técnica), é fundamental conduzir uma avaliação abrangente para assegurar
+que o modelosistema atinge efetivamente os objetivos de negócio. Um
+ponto crucial é determinar se há alguma questão de relevância
+empresarial que não tenha recebido a devida consideração ao longo do
+processo.
 
-The relevance of um sistema de credit card FDS from a more operational
-perspective, \# by explicitly considering their benefits for fraud
-investigators. \# Let us first recall that the purpose of an FDS is to
-provide \# investigators with alerts, that is, a set of transactions
-that are \# considered to be the most suspicious.
+Quando se trata de um sistema de detecção de fraudes em transações com
+cartão de crédito, é fundamental avaliar sua relevância operacional para
+o cenário empresarial. O objetivo central de tal sistema é emitir
+alertas sobre transações suspeitas, as quais são então submetidas à
+análise por parte dos investigadores. Esse procedimento é consome tempo.
+Em consequência, a quantidade de alertas que pode ser verificada durante
+um período específico é limitada.
 
-# - These transactions are manually checked, by contacting the cardholder.
+Uma forma de medirmos o benefício operacional é atráves da mensuração de
+quanto tal sistema ajuda investigadores. Suponha que é possível analisar
+*k* transações suspeitas em um dia. *Precision top-k* é uma medida de
+performance de que maximiza a precisão de sua estimação sobre o número
+*k* de alertas que um investigador consegue analisar.
 
-# - The process of contacting cardholders is time-consuming,
+*Precision top-k* é calculada da seguinte forma. Para um determinado dia
+*d*:
 
-# - the number of fraud investigators is limited.
+1.  Ordene as transações suspeitas de acordo com a probabilidade;
+2.  Selecione as top *k* transações mais suspeitas;
+3.  Compute a precisão sobre essas *k* transações.
 
-# - The number of alerts that may be checked during a given period is therefore necessarily limited.
+``` python
+def precision_top_k_day(df_day, top_k=100):
+    # sorting by the highest chance of fraud:
+    df_day = df_day.sort_values(by="predictions", ascending=False)
+    # Get the top k most suspicious transactions
+    df_day_top_k=df_day.head(top_k)
+    # Compute precision top k
+    precision_top_k = df_day_top_k["TX_FRAUD"].mean()
+    return precision_top_k
+```
 
-# Precision top-k metrics aim at quantifying the performance of an FDS in this setting.
+Podemos aplicar essa métrica ao nosso modelo e calcular a performance
+operacional de para cada dia da base de teste:
 
-# The parameter quantifies the maximum number of alerts that can be checked by investigators in a day.
+``` python
+test_df["predictions"] = y_pred[:, 1]
+prec_top_k_test = []
+for day in test_df["TX_TIME_DAYS"].unique():
+    prec_top_k_test.append(precision_top_k_day(test_df.query("TX_TIME_DAYS == @day")))
 
-# 
+# media de precision top100
+np.mean(prec_top_k_test)
+```
 
-# the performance of a classifier is to maximize the precision in the subset of k alerts for a given day.
+    0.4042857142857143
 
-# his quantity is referred to as the Precision top-k for day d.
+O nosso algoritmos é capaz de identificar uma média diária de 40% das
+100 \*\*flagged\* como suspeitas.
 
-## Deployment
+Uma vez que tenhamos uma forma de medir a performance operacional do
+sistema, podemos utilizar essa métrica como medida para otimizar os
+algoritmos.
+
+Vamos repetir o processo de estimação. Dessa vez utilizando a métrica a
+média *precision-top-k* de cada dia. Para isso, precisamos criar uma
+função que será utilizada junto com o `sklearn`. Para isso usaremos o
+`sklearn.metrics.make_scorer`:
+
+``` python
+# create a function that receivies y_true, y_pred and computes the daily precision:
+def daily_avg_precision_top_k(y_true, y_pred, top_k, transactions_df):
+    #y_true = y_test
+    #y_pred = y_pred[:, 1]
+    # get the test data:
+    df = transactions_df.loc[y_true.index]
+    # adding prediction
+    df["predictions"] = y_pred
+    # computing daily avg precision top-k:
+    avg = df.groupby("TX_TIME_DAYS").apply(precision_top_k_day).mean()
+    return avg
+
+from sklearn.metrics import make_scorer
+daily_avg_precision_top_k_score = make_scorer(
+    daily_avg_precision_top_k,
+    greater_is_better=True,
+    needs_proba=True,
+    top_k=100,
+    transactions_df=transactions_df[['CUSTOMER_ID', 'TX_FRAUD','TX_TIME_DAYS']]
+)
+```
+
+Uma vez criado a função para ser utilizada junto a biblioteca do
+`sklearn`, podemos repetir o processo de estimação com a média
+*precision-top-k*:
+
+``` python
+# using the same pipe and grid:
+myPipe
+myGrid
+
+# Let us instantiate the another GridSearchCV. This time with
+# our custom scorer:
+grid2 = GridSearchCV(
+    myPipe,
+    param_grid=myGrid,
+    scoring=daily_avg_precision_top_k_score,
+    cv=sequential_split_indices,
+    refit=False,
+    n_jobs=-1,
+    verbose=4
+)
+
+# fitting:
+grid2.fit(transactions_df[input_features], transactions_df[output_feature])
+
+# getting the results:
+results2 = pd.DataFrame(grid2.cv_results_)
+# assuming normal distribution:
+results2["lower_bd"] = results2["mean_test_score"]-2*results2["std_test_score"]
+results2["upper_bd"] = results2["mean_test_score"]+2*results2["std_test_score"]
+results2 = results2.sort_values("rank_test_score", ascending=True).reset_index(drop=True)
+
+# get the best configuration:
+idx2, best_clf_config2 = get_bestModel(results2)
+results2.loc[idx2]
+
+# final pipeline:
+mdl2 = Pipeline(steps=[
+    ("imputer", SimpleImputer(strategy="mean")),    
+    ('scaling', StandardScaler()),
+    ("clf", best_clf_config2)
+])
+
+# fitting:
+mdl2.fit(X_train, y_train)
+```
+
+``` python
+# predicting on test set:
+y_pred2 = mdl2.predict_proba(X_test)
+
+# daily average precision top_100 score:
+avg_prec_top_100 = daily_avg_precision_top_k(y_test, y_pred2[:, 1], top_k=100, transactions_df=transactions_df)
+
+# average precision score:
+avg_prec_test = average_precision_score(y_test, y_pred2[:, 1])
+
+print(f"CV prediction: {np.round(results2.loc[idx2, 'mean_test_score'], 2)}")
+print(f"CV confidence interval: [{np.round(results2.loc[idx2, 'lower_bd'], 2)}; {np.round(results2.loc[idx2, 'upper_bd'], 2)}]")
+print(f"Test score: {np.round(avg_prec_top_100, 2)}")
+```
+
+    CV prediction: 0.38
+    CV confidence interval: [0.36; 0.4]
+    Test score: 0.4
+
+Assim como anterior, a estratégia de CV foi uma boa alternativa para
+estimar algoritmos em suas diversas configurações e também para obter
+uma estimativa confiável acerca da performance futura do algoritmo.
+
+## Deployment <a name="deployment"></a>
+
+A criação de um sistema de detecção de fraude não é o fim de um projeto.
+Um vez que o sistema está estimado e os objetivos comerciais estão
+alinhados, chega a hora de disponibilizar esse sistema para que ele seja
+integrado em diferentes plataformas, aplicativos web, entre outros. A
+forma mais comum é tornar o sistema disponível é em formato de REST API.
+
+Primeira coisa a ser feita é salvar o modelo estimado para que ele seja
+reutilizado:
+
+``` python
+# getting the terminal and customer dict:
+# save final model:
+from joblib import dump
+dump(mdl2, "output/model.joblib")
+```
+
+Algumas considerações precisam ser feitas. Por exemplo, ao desenhar um
+API, o desenvolvedor precisa imaginar como será o dado que será
+utilizado como para o modelo gere previsões.
+
+No caso de presente problema, é provável que dados de transações de
+cartão de crédito contenha apenas as seguintes variáves:
+
+- `TRANSACAO_ID`
+- `TX_DATETIME`
+- `CUSTOMER_ID`
+- `TERMINAL_ID`
+- `TX_AMOUNT`
+
+Um primeir obstáculo que surge é como *encode* as variáveis de cliente e
+terminal. Como vimos ao longo da estimação, essas variáveis foram
+*encodadas* com valores históricos calculados. Em um modelo em produção,
+não será possível fazer isso a extração dessas informações a partir de
+dados históricos. Utilizaremos como dicionário, o último valor de cada
+variável calculada para cada customer e terminal. Isso irá ser utilizado
+como um dicionário:
+
+``` python
+# save dict
+
+# get the last info from terminal
+dict_terminal = transactions_df[["TX_DATETIME", "TERMINAL_ID",
+                                 'TERMINAL_ID_NB_TX_1DAY_WINDOW', 'TERMINAL_ID_RISK_1DAY_WINDOW',
+                                 'TERMINAL_ID_NB_TX_7DAY_WINDOW', 'TERMINAL_ID_RISK_7DAY_WINDOW',
+                                 'TERMINAL_ID_NB_TX_30DAY_WINDOW', 'TERMINAL_ID_RISK_30DAY_WINDOW']].sort_values("TX_DATETIME").groupby("TERMINAL_ID").tail(1)
+dump(dict_terminal, "output/dict_terminal.joblib")
+
+# get the last info from customer:
+dict_customer = transactions_df[["TX_DATETIME",
+                                 "CUSTOMER_ID",
+                                 'CUSTOMER_ID_NB_TX_1DAY_WINDOW',
+                                 'CUSTOMER_ID_AVG_AMOUNT_1DAY_WINDOW',
+                                 'CUSTOMER_ID_NB_TX_7DAY_WINDOW', 'CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW',
+                                 'CUSTOMER_ID_NB_TX_30DAY_WINDOW', 'CUSTOMER_ID_AVG_AMOUNT_30DAY_WINDOW',]].sort_values("TX_DATETIME").groupby("CUSTOMER_ID").tail(1)
+dump(dict_customer, "output/dict_customer.joblib")
+```
+
+Uma vez que tenhamos os dicionarios das variáveis categoricas e o modelo
+salvos, podemos escrever nosso API usando a biblioteca `Flask`:
+
+``` python
+from flask import Flask, request
+from joblib import load
+import pandas as pd
+
+app = Flask(__name__)
+
+@app.route("/fraud_alert", methods=["POST"])
+def fraud_alert():
+    # catching json:
+    json_ = request.get_json()
+    # convert to DF:
+    df = pd.DataFrame(json_)
+    # convert to datetime
+    df["TX_DATETIME"] = pd.to_datetime(df["TX_DATETIME"])
+    # creating features:    
+    # - whether a transaction occurs during a weekday or a weekend
+    df["TX_DURING_WEEKEND"] = (df["TX_DATETIME"].dt.weekday >= 5).astype("int")
+    # - whether a transaction is at night: night definition: 22 <= hour <= 6
+    df["TX_DURING_NIGHT"] = ((df["TX_DATETIME"].dt.hour <= 6) | (df["TX_DATETIME"].dt.hour >= 22)).astype("int")
+    # customer features
+    df = pd.merge(df, dict_customer, on="CUSTOMER_ID", how="left")
+    # terminal features
+    df = pd.merge(df, dict_terminal, on="TERMINAL_ID", how="left")
+    # input features:
+    input_features = [
+    'TX_AMOUNT', 'TX_DURING_WEEKEND', 'TX_DURING_NIGHT',
+    'CUSTOMER_ID_NB_TX_1DAY_WINDOW', 'CUSTOMER_ID_AVG_AMOUNT_1DAY_WINDOW',
+    'CUSTOMER_ID_NB_TX_7DAY_WINDOW', 'CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW',
+    'CUSTOMER_ID_NB_TX_30DAY_WINDOW', 'CUSTOMER_ID_AVG_AMOUNT_30DAY_WINDOW',
+    'TERMINAL_ID_NB_TX_1DAY_WINDOW', 'TERMINAL_ID_RISK_1DAY_WINDOW',
+    'TERMINAL_ID_NB_TX_7DAY_WINDOW', 'TERMINAL_ID_RISK_7DAY_WINDOW',
+    'TERMINAL_ID_NB_TX_30DAY_WINDOW', 'TERMINAL_ID_RISK_30DAY_WINDOW'
+    ]
+    # prediction:
+    df["prob_fraud"] = mdl.predict_proba(df[input_features])[:, 1]
+    
+    return df[["TRANSACTION_ID", "prob_fraud"]].to_dict(orient="records")
+
+
+if __name__ == "__main__":
+    # loading dicts:
+    dict_customer = load("output/dict_customer.joblib")
+    dict_terminal = load("output/dict_terminal.joblib")
+    # loading model:
+    mdl = load("output/model.joblib")
+    # running debug mode:
+    app.run(debug=True)
+```
+
+A partir de um terminal, podemos levantar a API com o seguinte comando:
+
+    pipenv run python api.py
+
+### Endpoints
+
+- **URL**: `/fraud_alert`
+- **Method**: `POST`
+- **Descrição**: Esse endpoint irá calcular a probabilidade de uma
+  transação ser considerada fraudulenta.
+- **Input**: `JSON` com `TRANSACAO_ID`, `TX_DATETIME`, `CUSTOMER_ID`,
+  `TERMINAL_ID`, `TX_AMOUNT`. Exemplo:
+
+``` json
+[{"TRANSACTION_ID":892153,"TX_DATETIME":1693612359000,"CUSTOMER_ID":3465,"TERMINAL_ID":2982,"TX_AMOUNT":101.76},{"TRANSACTION_ID":892154,"TX_DATETIME":1693612692000,"CUSTOMER_ID":3514,"TERMINAL_ID":9078,"TX_AMOUNT":99.75},{"TRANSACTION_ID":892155,"TX_DATETIME":1693612758000,"CUSTOMER_ID":1839,"TERMINAL_ID":4609,"TX_AMOUNT":15.95},{"TRANSACTION_ID":892156,"TX_DATETIME":1693612787000,"CUSTOMER_ID":2909,"TERMINAL_ID":6355,"TX_AMOUNT":85.64}]
+```
+
+- **Resposta**: `JSON` com o seguinte formato:
+
+``` json
+[
+  {
+    "TRANSACTION_ID": 892154,
+    "prob_fraud": 0.0007436351351168843
+  },
+  {
+    "TRANSACTION_ID": 892155,
+    "prob_fraud": 0.0019805953668296816
+  },
+  {
+    "TRANSACTION_ID": 892156,
+    "prob_fraud": 0.00022534077315471119
+  }
+]
+```
+
+Há um conjunto de transações referente ao dia `2023-09-01` no endereço
+`data/transactions_20230901.json`. Para realizar um `request` com esses
+dados, podemos proceder da seguinte forma:
+
+``` sh
+curl -XPOST -H "Content-Type: application/json" -d @data/transactions_20230901.json http://127.0.0.1:5000/fraud_alert
+```
 
 [^1]: Para a replicação dos dados simulados, há um script chamado
     `simulate_data.py` com os passos necessários. O script `utils.py`
