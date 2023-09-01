@@ -1,24 +1,34 @@
 import pandas as pd
 import numpy as np
 import datetime
-from utils import feature_engineering_customer_spending_behaviour, feature_engineering_terminal_risk, get_train_test_set
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import BaggingClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.metrics import f1_score, precision_score, recall_score
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import make_scorer
 from imblearn.metrics import geometric_mean_score
 from sklearn.model_selection import GridSearchCV
+from joblib import dump
 
 # Reading:
 transactions_df = pd.read_pickle("data/simulated-data-raw/fraud.pkl")
 transactions_df
 
+## ----------------------------------------------------------------------- ##
+# Data Understanding
+
 # 1. Feature Engineering
 
-# 1.1. date and time transformations
+# 1.1 date and time transformations
 
 # - whether a transaction occurs during a weekday or a weekend
 transactions_df["TX_DURING_WEEKEND"] = (transactions_df["TX_DATETIME"].dt.weekday >= 5).astype("int")
@@ -27,52 +37,126 @@ transactions_df["TX_DURING_WEEKEND"] = (transactions_df["TX_DATETIME"].dt.weekda
 # night definition: 22 <= hour <= 6
 transactions_df["TX_DURING_NIGHT"] = ((transactions_df["TX_DATETIME"].dt.hour <= 6) | (transactions_df["TX_DATETIME"].dt.hour >= 22)).astype("int")
 
+# 1.2 Customer ID
+def feature_engineering_customer_spending_behaviour(customer_transactions, windows_size_in_days=[1,7,30]):    
+    # Let us first order transactions chronologically
+    customer_transactions=customer_transactions.sort_values('TX_DATETIME')
+    
+    # The transaction date and time is set as the index, which will allow the use of the rolling function 
+    customer_transactions.index=customer_transactions.TX_DATETIME
+    
+    # For each window size
+    for window_size in windows_size_in_days:        
+        # Compute the sum of the transaction amounts and the number of transactions for the given window size
+        SUM_AMOUNT_TX_WINDOW=customer_transactions['TX_AMOUNT'].rolling(str(window_size)+'d').sum()
+        NB_TX_WINDOW=customer_transactions['TX_AMOUNT'].rolling(str(window_size)+'d').count()
+    
+        # Compute the average transaction amount for the given window size
+        # NB_TX_WINDOW is always >0 since current transaction is always included
+        AVG_AMOUNT_TX_WINDOW=SUM_AMOUNT_TX_WINDOW/NB_TX_WINDOW
+    
+        # Save feature values
+        customer_transactions['CUSTOMER_ID_NB_TX_'+str(window_size)+'DAY_WINDOW']=list(NB_TX_WINDOW)
+        customer_transactions['CUSTOMER_ID_AVG_AMOUNT_'+str(window_size)+'DAY_WINDOW']=list(AVG_AMOUNT_TX_WINDOW)
+    
+    # Reindex according to transaction IDs
+    customer_transactions.index=customer_transactions.TRANSACTION_ID
+        
+    # And return the dataframe with the new features
+    return customer_transactions
 
-# 1.2 Customer ID transformations
 
-# - number of transactions that occur within a time window
-# - average amount spent in these transactions
+# aplicando função:
 transactions_df = transactions_df.groupby("CUSTOMER_ID").apply(lambda x: feature_engineering_customer_spending_behaviour(x, windows_size_in_days=[1, 7, 30]))
 transactions_df.reset_index(drop=True, inplace=True)
 transactions_df.sort_values(by="TX_DATETIME", inplace=True)
 transactions_df
 
-# 1.3 Terminal ID transformations
-# The main goal is to extract a risk score.  The risk score will be defined as the average number of fraudulent transactions that occurred on a terminal ID over a time window. 
+# 1.3 Terminal ID
+def feature_engineering_terminal_risk(terminal_transactions,
+                                  delay_period=7,
+                                  windows_size_in_days=[1,7,30],
+                                  feature="TERMINAL_ID"):   
+    
+    terminal_transactions=terminal_transactions.sort_values('TX_DATETIME')
+    
+    terminal_transactions.index=terminal_transactions.TX_DATETIME
+    
+    NB_FRAUD_DELAY=terminal_transactions['TX_FRAUD'].rolling(str(delay_period)+'d').sum()
+    NB_TX_DELAY=terminal_transactions['TX_FRAUD'].rolling(str(delay_period)+'d').count()
+    
+    for window_size in windows_size_in_days:
+    
+        NB_FRAUD_DELAY_WINDOW=terminal_transactions['TX_FRAUD'].rolling(str(delay_period+window_size)+'d').sum()
+        NB_TX_DELAY_WINDOW=terminal_transactions['TX_FRAUD'].rolling(str(delay_period+window_size)+'d').count()
+    
+        NB_FRAUD_WINDOW=NB_FRAUD_DELAY_WINDOW-NB_FRAUD_DELAY
+        NB_TX_WINDOW=NB_TX_DELAY_WINDOW-NB_TX_DELAY
+    
+        RISK_WINDOW=NB_FRAUD_WINDOW/NB_TX_WINDOW
+        
+        terminal_transactions[feature+'_NB_TX_'+str(window_size)+'DAY_WINDOW']=list(NB_TX_WINDOW)
+        terminal_transactions[feature+'_RISK_'+str(window_size)+'DAY_WINDOW']=list(RISK_WINDOW)
+        
+    terminal_transactions.index=terminal_transactions.TRANSACTION_ID
+    
+    # Replace NA values with 0 (all undefined risk scores where NB_TX_WINDOW is 0) 
+    terminal_transactions.fillna(0,inplace=True)
+    
+    return terminal_transactions
 
-# Contrary to customer ID transformations, the time windows will not directly precede a given transaction. Instead, they will be shifted back by a delay period. The delay period accounts for the fact that, in practice, the fraudulent transactions are only discovered after a fraud investigation or a customer complaint. 
 
-# Hence, the fraudulent labels, which are needed to compute the risk score, are only available after this delay period. To a first approximation, this delay period will be set to one week.
-
-# Let us perform the computation of the risk scores by defining a get_count_risk_rolling_window function. The function takes as inputs the DataFrame of transactions for a given terminal ID, the delay period, and a list of window sizes. In the first stage, the number of transactions and fraudulent transactions are computed for the delay period (NB_TX_DELAY and NB_FRAUD_DELAY). In the second stage, the number of transactions and fraudulent transactions are computed for each window size plus the delay period (NB_TX_DELAY_WINDOW and NB_FRAUD_DELAY_WINDOW). The number of transactions and fraudulent transactions that occurred for a given window size, shifted back by the delay period, is then obtained by simply computing the differences of the quantities obtained for the delay period, and the window size plus delay period.
-
-# The risk score is finally obtained by computing the proportion of fraudulent transactions for each window size (or 0 if no transaction occurred for the given window).
-
-#Additionally to the risk score, the function also returns the number of transactions for each window size. This results in the addition of six new features: The risk and number of transactions, for three window sizes.
+# aplicando funcao:
 transactions_df=transactions_df.groupby('TERMINAL_ID').apply(lambda x: feature_engineering_terminal_risk(x, delay_period=7, windows_size_in_days=[1,7,30], feature="TERMINAL_ID"))
 transactions_df.sort_values('TX_DATETIME', inplace=True)
 transactions_df.reset_index(drop=True, inplace=True)
 transactions_df
 
 
-# 3. Estimation
+## ----------------------------------------------------------------- ##
+# Data Preparation
+def get_train_test_set(transactions_df,
+                       start_date_training,
+                       delta_train=7,delta_delay=7,delta_test=7):    
+    # Get the training set data
+    train_df = transactions_df[(transactions_df.TX_DATETIME>=start_date_training) &
+                               (transactions_df.TX_DATETIME<start_date_training+datetime.timedelta(days=delta_train))]    
+    # Get the test set data
+    test_df = []        
+    # First, get known defrauded customers from the training set
+    known_defrauded_customers = set(train_df[train_df.TX_FRAUD==1].CUSTOMER_ID)    
+    # Get the relative starting day of training set (easier than TX_DATETIME to collect test data)
+    start_tx_time_days_training = train_df.TX_TIME_DAYS.min()    
+    # Then, for each day of the test set
+    for day in range(delta_test):
+    
+        # Get test data for that day
+        test_df_day = transactions_df[transactions_df.TX_TIME_DAYS==start_tx_time_days_training+
+                                                                    delta_train+delta_delay+
+                                                                    day]
+        
+        # Compromised cards from that test day, minus the delay period, are added to the pool of known defrauded customers
+        test_df_day_delay_period = transactions_df[transactions_df.TX_TIME_DAYS==start_tx_time_days_training+
+                                                                                delta_train+
+                                                                                day-1]
+        
+        new_defrauded_customers = set(test_df_day_delay_period[test_df_day_delay_period.TX_FRAUD==1].CUSTOMER_ID)
+        known_defrauded_customers = known_defrauded_customers.union(new_defrauded_customers)
+        
+        test_df_day = test_df_day[~test_df_day.CUSTOMER_ID.isin(known_defrauded_customers)]
+        
+        test_df.append(test_df_day)
+        
+    test_df = pd.concat(test_df)
+    
+    # Sort data sets by ascending order of transaction ID
+    train_df=train_df.sort_values('TRANSACTION_ID')
+    test_df=test_df.sort_values('TRANSACTION_ID')
+    
+    return (train_df, test_df)
+
 
 # Defining the training and test sets
-
-# We will use the transactions from the 2018-07-25 to the 2018-07-31
-# for the training set;
-# data from the 2018-08-08 to the 2018-08-14 for the test set,
-
-# It is worth noting that we choose our test set to take place one
-# week after the last transaction of the training set.
-# In a fraud detection context, this period separating the training
-# and test set is referred to as the 'delay period' or 'feedback
-# delay'.
-# It accounts for the fact that, in a real-world fraud detection
-# system, the label of a transaction (fraudulent or genuine) is only
-# known after a customer complaint, or thanks to the result of a fraud
-# investigation.
-
 start_date = datetime.datetime.strptime("2023-08-11", "%Y-%m-%d")
 print(start_date)
 
@@ -114,6 +198,9 @@ X_train = train_df[input_features]
 y_test = test_df[output_feature]
 X_test = test_df[input_features]
 
+## ----------------------------------------------------------------------- ##
+# Modelling
+
 # dummy model:
 acc_dummy = accuracy_score(y_test, [y_train.mean() > .5]*len(y_test))
 f1_dummy = f1_score(y_test, [y_train.mean() > .5]*len(y_test))
@@ -127,7 +214,7 @@ dummy_res = pd.DataFrame(
      "acc": [acc_dummy],
      "f1_score": [f1_dummy],
      "gmean": [gmean_dummy],
-     "auc_dummy": [auc_dummy],
+     "auc": [auc_dummy],
      "average_precision": [avg_prec_dummy]}
 )
 
@@ -138,13 +225,6 @@ res = []
 res.append(dummy_res)
 
 # Estimamting ml algorithms
-from sklearn.ensemble import BaggingClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 # candidates:
 clfs = {
@@ -185,9 +265,11 @@ for name, clf in clfs.items():
          "acc": [acc],
          "f1_score": [f1],
          "gmean": [g_mean],
+         "auc": [auc],
          "average_precision": [avg_prec]
          }
-    )    
+    )
+
     res.append(eval)
 
 # concatenate results
@@ -195,8 +277,7 @@ res = pd.concat(res)
 res = res.sort_values("average_precision", ascending=True).reset_index(drop=True)
 print(res)
 
-
-## -------------------------------------------------------------------------------- ## 
+# Sequential CV:
 
 # The limitation with the last estimation strategy is that we only
 # have one estimation of the performance on real world scenario.
@@ -290,7 +371,6 @@ myGrid = [
 
 # Let us instantiate the GridSearchCV
 # set refit=False. Do retrained the best model on the whole data.
-from sklearn.model_selection import GridSearchCV
 grid = GridSearchCV(
     myPipe,
     param_grid=myGrid,
@@ -313,7 +393,6 @@ results["upper_bd"] = results["mean_test_score"]+2*results["std_test_score"]
 results = results.sort_values("rank_test_score", ascending=True).reset_index(drop=True)
 
 # Estimating the final model:
-
 # I use the model configuration with the best score - 1 standard deviation.
 
 # Defining a Custom best model criteria
@@ -362,31 +441,11 @@ print(f"CV prediction: {np.round(results.loc[idx, 'mean_test_score'], 2)}")
 print(f"CV confidence interval: [{np.round(results.loc[idx, 'lower_bd'], 2)}; {np.round(results.loc[idx, 'upper_bd'], 2)}]")
 print(f"Test score: {np.round(avg_prec_test, 2)}")
 
-# The AUC ROC can be interpreted as the probability that the scores
-# given by a classifier will rank a randomly chosen positive instance
-# higher than a randomly chosen negative one.
 
-# auc
-# ap
-# cp@k: Card Precision top-k for day d.
+## ---------------------------------------------------------------------------- ##
+# EVALUATION 
 
-
-# the relevance of a credit card FDS from a more operational perspective,
-# by explicitly considering their benefits for fraud investigators.
-# Let us first recall that the purpose of an FDS is to provide
-# investigators with alerts, that is, a set of transactions that are
-# considered to be the most suspicious.
-
-# - These transactions are manually checked, by contacting the cardholder.
-# - The process of contacting cardholders is time-consuming,
-# - the number of fraud investigators is limited.
-# - The number of alerts that may be checked during a given period is therefore necessarily limited.
-
-# Precision top-k metrics aim at quantifying the performance of an FDS in this setting.
-# The parameter quantifies the maximum number of alerts that can be checked by investigators in a day.
-# 
-# the performance of a classifier is to maximize the precision in the subset of k alerts for a given day.
-# his quantity is referred to as the Precision top-k for day d.
+# precision top k provides a more operational performance.
 test_df["predictions"] = y_pred[:, 1]
 
 def precision_top_k_day(df_day, top_k=100):
@@ -398,15 +457,16 @@ def precision_top_k_day(df_day, top_k=100):
     precision_top_k = df_day_top_k["TX_FRAUD"].mean()
     return precision_top_k
 
+nb_frauds = []
 prec_top_k_test = []
 for day in test_df["TX_TIME_DAYS"].unique():
+    nb_frauds.append(test_df.query("TX_TIME_DAYS == @day")["TX_FRAUD"].sum())
     prec_top_k_test.append(precision_top_k_day(test_df.query("TX_TIME_DAYS == @day")))
 
+np.mean(nb_frauds)
 np.mean(prec_top_k_test)
-np.std(prec_top_k_test)
 
-
-# Ok. I would like to estimate an AI model in order to optimize this performance.
+# Ok. I would like to estimate an AI model in order to optimize using this performance.
 # We need to convert in a way that sklearn can understand so we can use its 
 # functionalities.
 
@@ -424,7 +484,7 @@ def daily_avg_precision_top_k(y_true, y_pred, top_k, transactions_df):
     avg = df.groupby("TX_TIME_DAYS").apply(precision_top_k_day).mean()
     return avg
 
-from sklearn.metrics import make_scorer
+
 daily_avg_precision_top_k_score = make_scorer(
     daily_avg_precision_top_k,
     greater_is_better=True,
@@ -488,58 +548,11 @@ print(f"CV confidence interval: [{np.round(results2.loc[idx2, 'lower_bd'], 2)}; 
 print(f"Test score: {np.round(avg_prec_top_100, 2)}")
 
 
-
-
-## PR curve
-# the Precision-Recallcurve (PR curve) is obtained by plotting the
-# precision againt the recall for all different classification
-# thresholds. The main advantage of the PR curve is to put in evidence
-# classifiers that can have both a high recall and a high precision.
-# Let us now plot the PR curve, and compute its AUC. We will use the
-# Average Precision (AP), which summarizes such a plot as the weighted
-# mean of precisions achieved at each threshold, with the increase in
-# recall from the previous threshold used as the weight .
-average_precision_score(y_test, y_pred[:, 1])
-
-# the performance of a random classifier depends on the class
-# imbalance. It is 0.5  in the balanced case, and  P/(N+P) in the
-# general case, where  P is the number of positive examples, and  N
-# the number of negative examples.
-
-# This property makes the AP more interesting than the AUC ROC in a
-# fraud detection problem, since it better reflects the challenge
-# related to the class imbalance problem (the AP of a random
-# classifier decreases as the class imbalance ratio increases). 
-
-# Precision top k:
-# The Precision top-k can be computed for a day by ranking all fraud
-# probabilities by decreasing order, and computing the precision for
-# the top ranked transactions.
-# When a test set spans multiple days, let be the mean of Precision
-# top-k for a set of days. 
-
-# Card Precision top-k:
-# Multiple fraudulent transactions from the same card should count as
-# a single correct, so the Card Precision top-k quantifies the number
-# of correctly detected compromised cards out of the cards which have
-# the highest risks of frauds.
-# Instead of simply sorting transactions by decreasing order of their
-# fraud probabilities, we first group transactions by customer ID. For
-# each customer ID, we then take the maximum value of the fraud
-# probability and the fraud label.
-# The card precision top-k is then computed by sorting customer IDs by
-# decreasing order of their fraud probabilities and computing the
-# precision for the set of cards with the highest fraud probabilities. 
-train_df["predictions"] = clf.predict_proba(train_df[input_features])[:,1]
-test_df["predictions"] = clf.predict_proba(test_df[input_features])[:,1]
-transactions_df.columns
-
-## --------------------------------------------------------------------- ## 
-# DEPLOYMENT
+## --------------------------------------------------------------------- ##
+# Deployment
 
 # getting the terminal and customer dict:
 # save final model:
-from joblib import dump
 dump(mdl2, "output/model.joblib")
 
 # save dict

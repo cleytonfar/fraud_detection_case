@@ -1,8 +1,14 @@
 # Stone Case
 Cleyton Farias
-August, 2023
+September, 2023
 
 ### Pré-requisitos <a name="prerequisites"></a>
+
+Para acessar os scripts e a base de dados utilizados neste exercício,
+você pode fazer o download do repositório ou abrir um terminal e inserir
+o seguinte comando:
+
+    git clone https://github.com/cleytonfar/fraud_detection_case.git
 
 Este repositório contém scripts escritos em Python. Para configurar
 todas asdependências, é essencial que você utilize a ferramenta de
@@ -18,10 +24,21 @@ utilizadas. Abra um terminal e execute o seguinte comando:
 Este comando irá instalar todos os pacotes e suas respectivas versões
 necessárias para executar os scripts.
 
+O repositório conta com os seguintes arquivos:
+
+- `simulate_data.py`: script que irá gerar os dados utilizados neste
+  exercício;
+- `baseline_estimation.py`: script que contendo toda a modelagem
+  estatística;
+- `api.py`: script para transformar o modelo em API;
+- `utils.py`: script com funções auxiliares;
+- `data/`: diretório com os dados;
+- `output/`: diretório com modelo e dicionário utilizados no API;
+
 ## Credit Card Fraud Detection
 
 Este exercício consiste no desenvolvimento de um sistema simples para
-detectar fraudes em transações com cartão de crédito, utilizando dados
+detectar fraudes em transações de cartão de crédito, utilizando dados
 simulados.
 
 Por meio da aplicação de algoritmos de *machine learning* e uma
@@ -48,24 +65,25 @@ Dados públicos sobre transações reais de cartões de crédito são bastante
 raros. Existe apenas uma [base de dados
 disponível](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud?resource=download)
 na plataforma kaggle disponibilizada pelo [Machine Learning
-Group](https://mlg.ulb.ac.be/wordpress/). Apesar de sua limitação em
-representar cenários reais, essa base tem sido extensivamente utilizada
-por pesquisadores, profissionais e praticantes de modelagem estatística.
+Group](https://mlg.ulb.ac.be/wordpress/). Apesar de suas limitações em
+representar situações do mundo real, essa base tem sido amplamente
+utilizada por pesquisadores, profissionais e entusiastas da modelagem
+estatística.
 
-Com o intuito de disponibilizar o acesso de base de dados sobre o tema
-para, o [Machine Learning Group](https://mlg.ulb.ac.be/wordpress/)
-desenvolveu um simulador de dados de transações de cartões de crédito
-que permite a criação de dados sintéticos que contempla características
-reais de dados desse tipo.
+Com o objetivo de disponibilizar ainda mais informações sobre esse tema,
+o [Machine Learning Group](https://mlg.ulb.ac.be/wordpress/) desenvolveu
+um simulador de dados de transações de cartões de crédito. Esse
+simulador permite a criação de dados sintéticos que incorporam
+características autênticas desse tipo de informação.
 
-Em particular, o simulador[^1] permite a criação de um conjunto de dados
-com classes (transações fraudulentas ou não) desbalanceadas, incorpora
-variáveis numéricas e categóricas (incluindo características categóricas
-com um grande número de valores possíveis) e variáveis com
-características *time-dependent*.
+Em particular, o simulador[^1] cria um conjunto de dados que inclui
+classes (transações fraudulentas ou não) desbalanceadas, variáveis
+numéricas e categóricas (inclusive características categóricas com um
+grande número de valores possíveis). Além disso, as variáveis são
+configuradas de modo a possuir uma característica de *time-dependent*.
 
-Para esse exercício foi gerado um amostra de transações no cartão de
-crédito para 5000 clientes, em 10000 terminaios, durante 100 dias,
+Para esse exercício foi gerado um amostra de transações de cartão de
+crédito para 5000 clientes, em 10000 terminais, durante 100 dias,
 iniciado na data de `2023-06-01`.
 
 ``` python
@@ -88,32 +106,23 @@ transactions_df = add_frauds(customer_profiles_table, terminal_profiles_table, t
 transactions_df.head(5)
 ```
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-&#10;    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-&#10;    .dataframe thead th {
-        text-align: right;
-    }
-</style>
+       TRANSACTION_ID         TX_DATETIME CUSTOMER_ID TERMINAL_ID  TX_AMOUNT  \
+    0               0 2023-06-01 00:00:31         596        3156      57.16   
+    1               1 2023-06-01 00:02:10        4961        3412      81.51   
+    2               2 2023-06-01 00:07:56           2        1365     146.00   
+    3               3 2023-06-01 00:09:29        4128        8737      64.49   
+    4               4 2023-06-01 00:10:34         927        9906      50.99   
 
-|     | TRANSACTION_ID | TX_DATETIME         | CUSTOMER_ID | TERMINAL_ID | TX_AMOUNT | TX_TIME_SECONDS | TX_TIME_DAYS | TX_FRAUD | TX_FRAUD_SCENARIO |
-|-----|----------------|---------------------|-------------|-------------|-----------|-----------------|--------------|----------|-------------------|
-| 0   | 0              | 2023-06-01 00:00:31 | 596         | 3156        | 57.16     | 31              | 0            | 0        | 0                 |
-| 1   | 1              | 2023-06-01 00:02:10 | 4961        | 3412        | 81.51     | 130             | 0            | 0        | 0                 |
-| 2   | 2              | 2023-06-01 00:07:56 | 2           | 1365        | 146.00    | 476             | 0            | 0        | 0                 |
-| 3   | 3              | 2023-06-01 00:09:29 | 4128        | 8737        | 64.49     | 569             | 0            | 0        | 0                 |
-| 4   | 4              | 2023-06-01 00:10:34 | 927         | 9906        | 50.99     | 634             | 0            | 0        | 0                 |
-
-</div>
+      TX_TIME_SECONDS TX_TIME_DAYS  TX_FRAUD  TX_FRAUD_SCENARIO  
+    0              31            0         0                  0  
+    1             130            0         0                  0  
+    2             476            0         0                  0  
+    3             569            0         0                  0  
+    4             634            0         0                  0  
 
 ## Data Understanding <a name="data-understanding"></a>
 
-A base de dados contém 959,229 transações com cartão de crédito, durante
+A base de dados contém 959,229 transações de cartão de crédito, durante
 o período `2023-08-01` até `2023-09-08`, com as seguintes variáveis[^2]:
 
 - `TRANSACTION_ID`: identificador para cada transação;
@@ -124,11 +133,13 @@ o período `2023-08-01` até `2023-09-08`, com as seguintes variáveis[^2]:
 - `TX_FRAUD`: variável binária com valor 1 se a transação é fraudulenta;
   0 caso conctrário.
 
-Nesse exercício, irei construir um simples sistema de detecção de
+Neste exercício, será desenvolvido um sistema simples de detecção de
 fraudes utilizando algoritmos de *machine learning*.
 
-Uma das primeiras coisas a checar é a distribuição da variável
-dependente, `TX_FRAUD`. O código a seguir demonstra:
+Uma das etapas iniciais envolve a análise da distribuição da variável
+dependente, `TX_FRAUD`. O trecho de código a seguir demonstra como
+conduzir essa análise, fornecendo um contexto importante para
+entendermos a abordagem que estamos adotando.
 
 ``` python
 transactions_df["TX_FRAUD"].mean()
@@ -136,16 +147,21 @@ transactions_df["TX_FRAUD"].mean()
 
     0.00793762490500183
 
+Conforme podemos notar, o conjunto de dados exibe uma distribuição
+significativamente desequilibrada em relação aos casos de fraudes.
+Apenas 0,08% das transações em nossa amostra são rotuladas como
+transações fraudulentas. Essa característica é bastante representativa
+de cenários do mundo real, onde as fraudes geralmente são eventos raros
+e excepcionais em relação às transações legítimas.
+
 ### Feature Engineering <a name="feature-engineering"></a>
 
-Como podemos observar, o conjunto de dados apresenta uma distribuição
-bastante desbalanceada em relação aos casos de fraudes. Apenas 0.07% das
-transações em nosso conjunto de dados está marcado como transação
-fraudulenta. Essa característica é típico de cenário reais.
-
-Olhando para as variáveis disponíveis, há somente quatro variáveis
-disponíveis para podermos montar um sistema de detecção de fraude. Vamos
-entender como essas variáveis se relacionam com o flag de fraude:
+Ao examinarmos as variáveis disponíveis, percebemos que temos à nossa
+disposição apenas quatro delas (`TX_DATETIME`, `TX_AMOUNT`,
+`CUSTOMER_ID`, `TERMINAL_ID`) para construir um sistema de detecção de
+fraudes. É essencial investigar como essas variáveis estão relacionadas
+ao indicador de fraude, a fim de compreender o impacto delas na
+identificação de transações fraudulentas.
 
 ``` python
 transactions_df.groupby("TX_FRAUD")["TX_AMOUNT"].mean()
@@ -156,14 +172,18 @@ transactions_df.groupby("TX_FRAUD")["TX_AMOUNT"].mean()
     1    133.035867
     Name: TX_AMOUNT, dtype: float64
 
-Como podemos observar, transações marcadas como fraude possuem um valor
-cerca de 2.5 vezes maior do transações genuínas.
+Como podemos observar, as transações rotuladas como fraudes apresentam
+um valor de transação médio aproximadamente 2,5 vezes maior do que as
+transações legítimas. Essa diferença é significativa, sugerindo que a
+variável `TX_AMOUNT` pode desempenhar um papel crucial na previsão de
+fraudes.
 
-Um possível característica que pode estar relacionada a transações
-suspeitas é o período em que a transação está sendo realizada. É
-razoável supor que transações fraudulentas ocorram em períodos noturnos
-e durante finais de semana. Para checar isso, podemos criar variáveis
-que indiquem tais características nos dados:
+Uma característica que pode estar relacionada a transações suspeitas é o
+horário em que a transação ocorre. É plausível supor que transações
+fraudulentas ocorram mais frequentemente durante a noite e nos finais de
+semana. Para investigar essa hipótese, podemos criar variáveis que
+capturem essas características nos dados, permitindo-nos avaliar sua
+influência na detecção de fraudes:
 
 ``` python
 # - flag se transação ocorre durante o fim de semana ou nao:
@@ -199,22 +219,30 @@ transactions_df.groupby("TX_FRAUD")[["TX_DURING_WEEKEND", "TX_DURING_NIGHT"]].me
 
 </div>
 
-Os resultados mostram que esses flags não parecem estar fortemente
-correlacionados com a chance de uma transação ser fraude. Diferença de
-pouco mais de 0.1 p.p. entre os grupos. Apesar disso, essas
-características ainda podem ser úteis, uma vez que é razoável observar
-padrões de fraude variam entre dias úteis e fins de semana, assim como
-entre o dia e a noite.
+Os resultados indicam que esses indicadores não demonstram uma
+correlação substancial com a probabilidade de uma transação ser
+considerada uma fraude, com uma diferença de apenas um pouco mais de 0,1
+ponto percentual entre os grupos. No entanto, é importante notar que
+essas características ainda podem ser valiosas, pois é razoável supor
+que os padrões de fraudes possam variar entre dias úteis e fins de
+semana, bem como entre o período diurno e noturno. Portanto, embora a
+correlação direta seja modesta, essas variáveis ainda podem desempenhar
+um papel significativo na detecção de fraudes, capturando nuances
+temporais que podem ser críticas para o processo de identificação.
 
-Outro característica importante em problemas de detecção de faude
-consiste no padrão de gasto de cada cliente. Cada consumidor possue um
-padrão de consumo e sempre que uma transação (ou um conjunto de
-transações) desvie desse padrão, cresce um alerta sobre o risco de
-fraude. Para caracterizar o padrão de consumo do consumidor, podemos
-criar variáveis que representem o número de transaçãoes e o gasto médio
-no passado. Para isso vamos criar variáveis de descrevem a frequência e
-o gasto médio de cada cliente em 3 janelas distintas de tempo: dia
-anterior, semana anterior e mês anterior.
+Outro aspecto crucial em problemas de detecção de fraudes reside na
+análise dos padrões de gastos de cada cliente. Cada consumidor possui um
+histórico de consumo único, e qualquer desvio significativo desse padrão
+pode indicar um potencial risco de fraude. Para capturar e caracterizar
+esses padrões individuais de consumo, será criado variáveis que
+representam o número de transações e a média de gastos do cliente ao
+longo de três janelas de tempo distintas: o dia anterior, a semana
+anterior e o mês anterior. Essas variáveis nos permitirão avaliar o
+comportamento do cliente em relação ao seu próprio histórico e
+identificar variações que possam indicar atividades suspeitas. Para isso
+será utilizado a função auxiliar
+`feature_engineering_customer_spending_behavior` para a criação dessas
+variáveis:
 
 ``` python
 def feature_engineering_customer_spending_behaviour(customer_transactions, windows_size_in_days=[1,7,30]):    
@@ -313,27 +341,35 @@ transactions_df.groupby("TX_FRAUD")[['CUSTOMER_ID_NB_TX_1DAY_WINDOW',
 
 </div>
 
-Como podemos ver, as variáveis que caracterizam o padrão de gasto dos
-cliente apresentam uma relação significativa.
+Conforme podemos ver, as variáveis que descrevem o padrão de gastos dos
+clientes exibem uma relação significativa. Isso sugere que essas
+variáveis estão relacionadas de forma relevante e podem ser utilizadas
+como indicadores importantes para a previsão de transações fraudulentas.
 
-Podemos também extrair mais um conjunto de variáveis que caracterizem os
-terminais de pagamento. Utilizando a mesma ideia de utilizada
-anteriormente, o objetivo é calcular um escore de risco que avalia a
-vulnerabilidade de um determinado terminal a transações fraudulentas.
-Esse risco será calculado como a média das fraudes registradas no
-terminal ao longo de três intervalos de tempo diferentes.
+Além disso, podemos derivar um conjunto adicional de variáveis que
+caracterizam os terminais de pagamento. Seguindo a mesma lógica
+utilizada anteriormente com os clientes, o objetivo aqui é calcular um
+índice de risco que avalie a vulnerabilidade de um determinado terminal
+a transações fraudulentas. Esse índice de risco será calculado como a
+média das ocorrências de fraudes registradas em um terminal durante três
+intervalos de tempo distintos.
 
 Contudo, diferentemente das variáveis criadas baseadas no comportamento
 de gasto do cliente, as janelas de tempo para os terminais não estarão
 diretamente antes de uma transação específica. Em vez disso, elas serão
 ajustadas para trás por um período de *delay*. O motivo disso é que em
 um cenário real, as transações fraudulentas só são descobertas após uma
-investigação ou reclamação do cliente. Essa descoberta leva um certo
-tempo para acontecer. Por isso, as transações fraudelentas que são
-usadas para calcular o score de risco, só estarão disponíveis após esse
-período de *delay*. Então, para um período de delay *d* e uma janela de
-7 dias, então a janela seria `[d-7; d]`. Para uma aproximação inicial,
-esse período de *delay* será definido como uma semana (d = 7).
+investigação sobre o caso. Essa descoberta leva um certo tempo até
+acontecer. Portanto, as transações fraudulentas que são usadas para
+calcular o índice de risco, só estarão disponíveis após esse período de
+*delay*. Por exemplo, para calcular o índice de risco de um terminal em
+uma data *t* para uma janela dos últimos 7 dias, precisamos olhar para
+os últimos 7 dias de transações com a tag de fraude conhecida a partir
+de *t*. Para um período de delay com 7 dias, então a índice seria
+calculado entre `[t-14; t-7]`. Para uma aproximação inicial, esse
+período de *delay* será definido como de 1 semana (d = 7) ao longo desse
+exercício. As janelas serão as mesmas utilizadas anteriormente (1, 7,
+30):
 
 ``` python
 # definindo uma função auxiliar para calcular as variáveis de risco em diferentes janelas:
@@ -444,50 +480,60 @@ transactions_df.groupby("TX_FRAUD")[[ 'TERMINAL_ID_NB_TX_1DAY_WINDOW',
 
 </div>
 
-Como podemos ver, transações fraudelentas apresentam uma relação com as
-variáveis de risco de cada terminal.
+As estatísticas mostram que as transações fraudulentas podem possuir uma
+relaçao com as variáveis que representam o nível de risco de cada
+terminal de pagamento. Essa relação sugere que as características dos
+terminais podem desempenhar um papel significativo na identificação de
+transações suspeitas.
 
 ## Data Preparation <a name="data-preparation"></a>
 
-Agora que temos a base de dados de transação, verificamos a distribuicao
-de nossa variável de interesse e extraímos novas características a
-partir das informações existentes, podemos seguir para a fase de
-preparar os dados para a estimação de nosso sistema de detecção de
-fraude.
+Agora que possuímos a base de dados de transações, analisamos a
+distribuição da nossa variável de interesse e derivamos novas
+características a partir das informações disponíveis, podemos avançar
+para a etapa de preparação dos dados necessários para treinar nosso
+sistema de detecção de fraudes.
 
 Primeira coisa que precisamos definir é nossa base de treinamento e base
-de test. É importante tomar cuidado no aspecto temporal do problema de
-detecção de fraude. Os dados apresentam um aspecto de *time-dependent*
-entre as variáveis e é preciso levar isso em consideração na estratégia
-de treinamento. É comum resoluções de problemas como *time-dependent*
-onde não esse tipo de consideração. Um dos problemas que isso pode
-acarretar é o *data leakage* em nosso processo de treinamento do
-algoritmo de *machine learning*.
+de teste. Como mencionado anteriormente, os dados exibem uma relação de
+dependência temporal entre as variáveis, o que requer uma consideração
+cuidadosa na estratégia de treinamento. Em muitas situações, problemas
+que envolvem dependência temporal são resolvidos sem essa devida
+atenção, o que pode levar a problemas de *data leakage* no processo de
+treinamento de algoritmos de *machine learning*. Portanto, é essencial
+garantir que a estratégia de estimação escolhida leve em consideração
+essa temporalidade para obter resultados robustos e confiáveis.
 
-Para evitar esse problema, eu utilizarei transações durante o período de
-`2023-08-11` até `2023-08-17` como base de treinamento e transações
-entre `2023-08-25` e `2023-08-31` como base de test. Ou seja, escolhemos
-1 semana de transações para a base de treinamento e 1 semana de
-transações para o teste.
+Para evitar esse problema, optei por usar as transações ocorridas no
+período de `2023-08-11` a `2023-08-17` como conjunto de treinamento e as
+transações entre `2023-08-25` e `2023-08-31` como conjunto de teste. Em
+outras palavras, foi selecionado uma semana de transações para
+treinamento e outra semana de transações para teste.
 
-Vale ressaltar um aspecto importante na estratégia escolhida: a base de
-teste ocorre uma semana após a última transação do base de treinamento.
-Esse período que separa a base de treinamento e a base de teste é
-chamado de *delay*. Esse período representa o fato de que, em um cenário
-real detecção de fraudes, a classificação de uma transação (fraudulenta
-ou não) só é conhecida após uma reclamação do cliente ou com base nos
-resultados de uma investigação de fraude.
+É importante destacar um aspecto crucial nessa estratégia escolhida: a
+base de teste está situada uma semana após a última transação da base de
+treinamento. Esse intervalo de tempo que separa o conjunto de
+treinamento do conjunto de teste é conhecido como *delay*. Esse período
+reflete o fato de que, em um cenário real de detecção de fraudes, a
+classificação de uma transação (fraudulenta ou não) só é determinada
+após uma investigação de fraude, o que acarreta esse atraso temporal.
 
-Outro ponto importante intríseco a cenários de detecção de fraude é a
-exclusão de cartões fraudulentos da base de treinamento na base de
-teste. Dado o aspecto temporal da separação da base de treinamento e
-teste, cartões que já foram detectatos com transações fraudulentas no
-*training set* serão excluídos na base de teste. Também, cartões que
-vierem a ser descobertos como fraudulentos ao longo do período de delay
-serão excluídos da base de test.
+Outro ponto crucial em cenários de detecção de fraudes diz respeito à
+exclusão de cartões fraudulentos da base de treinamento durante o
+período de teste. Devido à natureza temporal da separação entre a base
+de treinamento e a de teste, cartões que já foram identificados com
+transações fraudulentas no conjunto de treinamento serão removidos da
+base de teste. Além disso, quaisquer cartões que se tornem conhecidos
+como fraudulentos durante o período de atraso *delay* também serão
+excluídos da base de teste. Isso assegura que o modelo seja avaliado de
+forma justa, refletindo a realidade de que a detecção de fraudes em
+transações já conhecidas como fraudulentas é geralmente trivial e não
+representa um desafio real.
 
-Para realizar essa separação, foi criado uma função auxiliar chamada
-`get_train_est_set`:
+Para efetuar essa divisão temporal dos conjuntos de treinamento e teste,
+bem como realizar a exclusão das transações fraudulentas identificadas
+na base de treinamento e durante o período de atraso da base de teste,
+foi criado uma função auxiliar denominada `get_train_test_set`.
 
 ``` python
 def get_train_test_set(transactions_df,
@@ -539,6 +585,10 @@ def get_train_test_set(transactions_df,
     
     return (train_df, test_df)
 ```
+
+Como dito anteriormente, nosso conjunto de treinamento será composto por
+transações ocorridas de `2023-08-11` a `2023-08-17`, e as transações
+entre `2023-08-25` e `2023-08-31` irá compor a base de teste:
 
 ``` python
 import datetime
@@ -597,36 +647,40 @@ X_test = test_df[input_features]
 
 ## Modelling <a name="modelling"></a>
 
-A detecção de fraudes é frequentemente tratada como um problema de
-classificação binária: um sistema de detecção de fraudes recebe
-transações e tem como objetivo preverse essas transações são
+A detecção de fraudes é comumente abordada como um problema de
+classificação binária, em que um sistema de detecção de fraudes recebe
+transações e tem como objetivo determinar se essas transações são
 provavelmente legítimas ou fraudulentas.
 
-Uma característica inerente aos problemas de detecção de fraude é o
-desequilíbrio significativo na distribuição das classes, em que a
-proporção de casos de fraude é consideravelmente menor. Ao realizar a
-modelagem, é crucial considerar esse aspecto.
+Um aspecto intrínseco a problemas de detecção de fraude é a presença de
+um desequilíbrio significativo na distribuição das classes, em que a
+proporção de casos de fraude é consideravelmente menor em relação às
+transações legítimas. Durante o processo de modelagem, é de extrema
+importância levar em conta esse desequilíbrio para garantir uma
+abordagem adequada à detecção de fraudes.
 
-É bastante comum em problemas de classificação binária o uso da acurácia
-como métrica de desempenho dos algoritmos. No entanto, apesar de sua
-interpretação simples, essa métrica não é apropriada para problemas em
-que há um desequilíbrio significativo na distribuição da variável
-dependente. Outras medidas são mais apropriadas para o tipo de problema
-em questão.
+Frequentemente, em problemas de classificação binária, a métrica de
+acurácia é amplamente empregada para avaliar o desempenho dos
+algoritmos. No entanto, essa métrica, apesar de sua interpretação
+simples, não se mostra apropriada quando se lida com problemas que
+apresentam um desequilíbrio significativo na distribuição das classes da
+variável dependente. Em tais cenários, outras medidas de avaliação são
+mais adequadas.
 
-O *F1-score* é uma métrica especialmente útil para lidar com casos de
-desbalanceamento em problemas de classificação, como a detecção de
-fraudes. Isso se deve ao fato de que o F1-score considera tanto a
-precisão (precision) quanto o recall, o que o torna uma medida
-equilibrada e sensível às situações em que há uma proporção desigual
-entre as classes.
+O F1-score é uma métrica particularmente útil para abordar problemas de
+desequilíbrio em problemas de classificação, como a detecção de fraudes.
+Sua utilidade deriva do fato de que o F1-score leva em consideração
+tanto a precisão (precision) quanto o recall, tornando-se assim uma
+métrica equilibrada e sensível para situações em que existe uma
+desproporção significativa entre as classes.
 
-O *G-mean*, ou média geométrica, é outra métrica que se destaca quando
-se trata de avaliar o desempenho de modelos em cenários de classes
-desbalanceadas. A média geométrica é definida como $\sqrt{TNP*TNR}$,
-onde `TNR` e `TPR` são taxas de verdadeiros positivos (casos
-corretamente identificados como a classe minoritária) e verdadeiros
-negativos (casos corretamente identificados como a classe majoritária).
+O G-mean, ou média geométrica, surge como outra métrica relevante na
+avaliação de modelos em cenários com classes desbalanceadas. Essa
+métrica é definida como a raiz quadrada da multiplicação das taxas de
+verdadeiros negativos (TNR) e verdadeiros positivos (TPR). O TNR mede a
+proporção de casos corretamente identificados como a classe majoritária,
+enquanto o TPR representa a proporção de casos corretamente
+identificados como a classe minoritária.
 
 A *AUC-ROC* mede a capacidade do modelo de classificar corretamente
 instâncias positivas em relação às negativas em diveros thresholds de
@@ -636,13 +690,15 @@ de acurácia.
 
 Por fim, também será utilizado a *média de precisão (Average
 Precision)*. Essa métrica é a area sobre a curva Precision-Recall e é
-métrica valiosa para avaliar o desempenho de modelos em cenários de
+uma métrica valiosa para avaliar o desempenho de modelos em cenários de
 classes desbalanceadas, como a detecção de fraudes.
 
-Em primeiro lugar, vamos montar um *dummy classifier* e utilizá-lo como
-*baseline* para os nossos modelos subsequentes. Esse classifier
-utilizará como previsão a média da variável de interesse como previsão
-se a transação será suspeita ou não.
+Para começar com o processo de modelagem, será criado um *dummy
+classifier* e usá-lo como uma referência inicial (*baseline*) para os
+modelos subsequentes. Esse classificador adotará a média de `TX_FRAUD`
+na base de treinamento como previsão para determinar se uma transação é
+suspeita ou não. Essa classificador será avaliado utilizando as métricas
+mencionadas anteriormente.
 
 ``` python
 from sklearn.metrics import accuracy_score, roc_auc_score
@@ -674,10 +730,10 @@ res = []
 res.append(dummy_res)
 ```
 
-A partir de agora vamos estimar seis algoritmos de *machine learning* e
-compará-los entre si e como o *dummy classifier* para checarmos como
-vamos melhorando nossas estimações. Especificamente iremos estimar os
-seguintes algoritmos:
+A partir deste ponto, vamos realizar a estimativa de seis algoritmos de
+*machine learning* e compará-los entre si, bem como com o *dummy
+classifier*, a fim de avaliar como nossas previsões estão melhorando. Os
+algoritmos que serão estimados são os seguintes:
 
 - Logistic Regression;
 - *K-nearest neighbors*
@@ -686,12 +742,16 @@ seguintes algoritmos:
 - Random Forest;
 - Gradient Boosting;
 
-Todos os algoritmos serão estimados com configuração *default*.
+Todos os algoritmos serão estimados com configuração *default*. O
+objetivo aqui é avaliar diferentes modelos de forma rápida e checar se é
+possível aprender algo com os dados.
 
-Será utilizado um processo de imputação e de *scaling* nas variáveis
-explicativas. Essas etapas serão agrupadas em um `Pipeline`. O uso
-Pipelines permite estruturar o fluxo de trabalho de modelagem de maneira
-mais organizada e legível.
+Como estratégia de pré-processamento, será utilizado um processo de
+imputação e de *scaling* nas variáveis explicativas. Essas etapas serão
+agrupadas em um `Pipeline`. O uso de *pipelines* permite uma organização
+mais estruturada e legível do fluxo de trabalho de modelagem, além de
+prevenir a contaminação do processo de treinamento com informações do
+conjunto de teste, evitando assim problemas como *data leakage*.
 
 ``` python
 from sklearn.linear_model import LogisticRegression
@@ -759,45 +819,46 @@ print(res)
 
                  clf       acc  f1_score     gmean       auc  average_precision
     0          dummy  0.992628  0.000000  0.000000  0.500000           0.007372
-    1           tree  0.994360  0.622273  0.792706  0.813648           0.390012
+    1           tree  0.994565  0.634371  0.798590  0.818368           0.405111
     2            knn  0.995903  0.631741  0.690383  0.792873           0.532729
-    3  GradientBoost  0.996434  0.725594  0.799343  0.866963           0.595534
+    3  GradientBoost  0.996434  0.725594  0.799343  0.866962           0.595429
     4       logistic  0.995868  0.637594  0.702017  0.875138           0.627553
-    5        bagging  0.997000  0.754558  0.790841  0.851214           0.674920
-    6             rf  0.996777  0.729885  0.768489  0.885207           0.697627
+    5        bagging  0.997051  0.759777  0.795239  0.852352           0.671485
+    6             rf  0.996760  0.727273  0.765464  0.876126           0.699080
 
-A tabela anterior mostra o performance dos algoritmos sobre a base de
-teste. Como podemos observar, o *dummy classifier* possui o pior
-desempenho entre todos os classificadores, enquanto o *random forest*
-possui o melhor desempenho em termos de *average precision*.
+A tabela anterior apresenta o desempenho dos algoritmos na base de
+teste. Conforme observado, o *dummy classifier* apresenta o desempenho
+mais fraco entre todos os classificadores, enquanto o random forest
+alcança o melhor desempenho em termos de *average precision*.
 
-É de suma importância salientar que a acurácia não é adequada como
-métrica em cenários com distribuição desequilibrada da variável Y. O
-dummy classifier atingiu uma taxa de acurácia de 99,26%, um resultado
-que, em outra situação, poderia ser considerado excepcional. Entretanto,
-ao examinar as demais métricas, fica claro que esse mesmo classificador
-exibe um desempenho notavelmente inferior quando comparado a outros
-modelos.
+É fundamental ressaltar que a acurácia não é uma métrica adequada em
+cenários com uma distribuição desequilibrada da variável `Y`. O dummy
+classifier atingiu uma taxa de acurácia de 99.26%, um resultado que, em
+outras circunstâncias, poderia ser considerado excepcional. No entanto,
+ao analisar as outras métricas, fica evidente que esse mesmo
+classificador demonstra um desempenho notadamente inferior em comparação
+com outros modelos.
 
 ### Improvement
 
 Uma limitação da última estratégia de estimação (train-test split) é que
-possuímos apenas uma única medida de desempenho do respectivo
-algoritmo.Apesar de ser uma estratégia valiosa, é fundamental contar com
-métodos que nos permitam quantificar a incerteza em torno da performance
-do algoritmo.
+estamos obtendo apenas uma única medida de desempenho para cada
+algoritmo. Apesar de ser uma abordagem valiosa, é crucial contar uma
+estratégia de estimação que nos permite quantificar a incerteza em
+relação ao desempenho do algoritmo.
 
-Uma forma de obtermos estimatas mais precisas é realizarmos uma
-estratégia de *cross validation*(CV). Contudo, o problema de detecção de
-fraude possui um aspecto temporal. Então será preciso adptar uma
-estratégia de CV a esse aspecto temporal.
+Uma maneira de obter estimativas mais precisas é adotar uma estratégia
+de *cross validation*(CV). CNo entanto, o problema de detecção de
+fraudes apresenta um componente temporal que precisa ser levado em
+consideração. Portanto, será necessário adaptar a estratégia de CV para
+lidar com essa temporalidade.
 
 Uma forma de fazer isso é adaptar a estratégia de
 [timeSeriesSplit](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html)
 às características do problema de detecção de fraud (delay period). Em
 outras palavras, iremos aplicar a mesma função de separação de
-train-test set (`get_train_test_data`) tal que as bases de treino e test
-sempre são deslocadas por um bloco de tempo.
+train-test set (`get_train_test_data`) tal que as bases de treino e
+teste sempre são deslocadas por um bloco de tempo.
 
 A função `sequential_train_test_split` irá realizar esse separação. Essa
 função irá receber a base de dados (*transactions_df*), a data que irá
@@ -837,11 +898,11 @@ def sequential_train_test_split(transactions_df,
     return sequential_split_indices
 ```
 
-Vamos a estratégia de estimacao como utilizando 5 folders, e 1 semana de
-dados para treinament, 1 semanada de dados para o base de validacao e 1
-semanda de delay period. Irei manter a base de test para que possamos
-testar se nossa estimativa de performance irá bater como a performance
-de na base de teste.
+Vamos utilizar estratégia de estimacao como utilizando 5 folders, e 1
+semana de dados para treinamento, 1 semana de dados para o base de
+validacao e 1 semana de delay. Irei manter a base de teste para que
+possamos testar se nossa estimativa de performance irá bater como a
+performance na base de teste.
 
 ``` python
 # determing the folders:
@@ -905,11 +966,11 @@ treinamento. Como a base de teste possui transações entre `2023-08-25` e
 `2023-08-31`, então todas as bases estão de acordo.
 
 Com a estratégia de CV definida, agora é possível extender a estimação
-dos algoritmos e testar algumas configurações de hyperparametros para
+dos algoritmos e testar algumas configurações de hyperparâmetros para
 cada algoritmo, de modo otimizar a performance do sistema de detecção de
 fraude.
 
-Para isso, irei definir um conjunto de algoritmos e hyperparametros e
+Para isso, irei definir um conjunto de algoritmos e hyperparâmetros e
 testá-los utilizando a estratégia de `GridSearchCV`. Os algoritmos serão
 avaliados utilizando a métrica *average precision*.
 
@@ -959,16 +1020,21 @@ grid = GridSearchCV(
 grid.fit(transactions_df[input_features], transactions_df[output_feature])
 ```
 
-Como especificado em `GridSearchCV`, eu setei `refit=False` para que não
-fosse reestimado a melhor configuração de modelo sobre todo o conjunto
-de dados. Com isso, não é retornado o `.best_params_`, `.best_score_`,
-`.best_estimator_`.
+Conforme definido no `GridSearchCV`, foi configurado `refit=False` para
+que a melhor configuração do modelo não fosse reestimada em todo o
+conjunto de dados. Como resultado, não serão retornados os atributos
+`.best_params_`, `.best_score_` e `.best_estimator_`. Essa configuração
+permite um maior controle sobre o processo de treinamento e avaliação do
+modelo, especialmente quando se deseja ajustar a configuração do modelo
+posteriormente com base em resultados específicos.
 
-Para obter a performance dos modelos, vamos extrair o atributo
-`.cv_results_`, converter para DataFrame. A seguir é calculado um
-intervalo de confiança para cada estimação de performance. Dessa forma,
-podemos ter uma medida de incerteza acerca da previsão da performance
-dos nossos algoritmos sobre a base de test.
+Para avaliar o desempenho dos modelos, será extraído o atributo
+`.cv_results_` e converter os resultados em um `DataFrame`. Em seguida,
+será calculado um intervalo de confiança para cada estimativa de
+desempenho. Essa abordagem nos proporcionará uma medida de incerteza em
+relação à previsão do desempenho dos nossos algoritmos na base de teste.
+Isso é essencial para compreender a variabilidade e a confiabilidade das
+estimativas de desempenho obtidas por meio da validação cruzada.
 
 ``` python
 # getting the results:
@@ -980,13 +1046,14 @@ results["upper_bd"] = results["mean_test_score"]+2*results["std_test_score"]
 results = results.sort_values("rank_test_score", ascending=True).reset_index(drop=True)
 ```
 
-Para obter o modelo final, eu procedo da seguinte maneira: escolher o
-modelo que está a 1 desvio padrão da melhor performance. Essa escolha
-ajuda a reduzir ainda mais a dependencia do modelo sobre as bases de
-validação e dessa forma diminuir o *overfitting*. Para isso é criado uma
-função auxiliar (`get_bestModel`) que recebe esse DataFrame com as
-performances e retorna um tupple com o indice do modelo escolhido e a
-configuracao:
+Para selecionar o modelo final, adoto a seguinte abordagem: escolho o
+modelo que se encontra a um desvio padrão da melhor performance
+encontrada no CV. Essa escolha visa reduzir ainda mais a dependência do
+modelo em relação às bases de validação, diminuindo assim o risco de
+*overfitting*. Para implementar esse processo, desenvolvi uma função
+auxiliar chamada `get_bestModel`. Essa função recebe o `DataFrame`
+contendo as métricas de desempenho e retorna um *tuple* com o índice do
+modelo selecionado e sua configuração correspondente.
 
 ``` python
 # Defining a Custom best model criteria
@@ -1022,10 +1089,10 @@ idx, best_clf_config = get_bestModel(results)
 results.loc[idx]
 ```
 
-    mean_fit_time                                                       2.178353
-    std_fit_time                                                        0.190987
-    mean_score_time                                                      0.06542
-    std_score_time                                                      0.001052
+    mean_fit_time                                                       2.320683
+    std_fit_time                                                        0.220351
+    mean_score_time                                                     0.076805
+    std_score_time                                                      0.008975
     param_clf                  LogisticRegression(C=0.5, max_iter=2000, solve...
     param_clf__C                                                             0.5
     param_clf__penalty                                                        l2
@@ -1045,8 +1112,13 @@ results.loc[idx]
     upper_bd                                                            0.657033
     Name: 7, dtype: object
 
-Agora podemos estimar o modelo final utilizando a base de treino e
-testar esse modelo sobre a base de teste:
+Os resultados de CV demonstram que o algoritmo com o melhor desempenho
+(segundo a regra de 1SD) é uma regressão logística, com penalidade do
+tipo L2 (ridge) e *penalty term* = .5.
+
+Agora podemos reestimar a configuração final do algoritmo utilizando a
+base de treino (`X_train`, `y_train`) e testar esse modelo sobre a base
+de teste (`X_test`, `y_test`):
 
 ``` python
 # final pipeline:
@@ -1073,10 +1145,12 @@ print(f"Test score: {np.round(avg_prec_test, 2)}")
     CV confidence interval: [0.57; 0.66]
     Test score: 0.63
 
-Como é possível observar, a estratégia de CV foi uma boa alternativa
-para estimar algoritmos em suas diversas configurações e também para
-obter uma estimativa confiável acerca da performance futura do
-algoritmo.
+A estimativa de CV para a previsão de performance no base de teste foi
+de 0.61, com intervalo entre 0.57 - 0.66. A performance na base de teste
+do algoritmo foi de 0.63. Como é possível observar, a estratégia de CV
+foi uma boa alternativa para estimar algoritmos em suas diversas
+configurações e também para obter uma estimativa confiável acerca da
+performance futura do algoritmo.
 
 ## Evaluation <a name="evaluation"></a>
 
@@ -1087,19 +1161,21 @@ ponto crucial é determinar se há alguma questão de relevância
 empresarial que não tenha recebido a devida consideração ao longo do
 processo.
 
-Quando se trata de um sistema de detecção de fraudes em transações com
+Quando se trata de um sistema de detecção de fraudes em transações de
 cartão de crédito, é fundamental avaliar sua relevância operacional para
 o cenário empresarial. O objetivo central de tal sistema é emitir
 alertas sobre transações suspeitas, as quais são então submetidas à
-análise por parte dos investigadores. Esse procedimento é consome tempo.
+análise por parte dos investigadores. Esse procedimento consome tempo.
 Em consequência, a quantidade de alertas que pode ser verificada durante
 um período específico é limitada.
 
-Uma forma de medirmos o benefício operacional é atráves da mensuração de
-quanto tal sistema ajuda investigadores. Suponha que é possível analisar
+Uma forma de medirmos o benefício operacional um sistema de detecção de
+fraude é atráves da mensuração de quanto ele ajuda os investigadores a
+confirmarem as fraudes. Suponha que investigadores conseguem analisar
 *k* transações suspeitas em um dia. *Precision top-k* é uma medida de
-performance de que maximiza a precisão de sua estimação sobre o número
-*k* de alertas que um investigador consegue analisar.
+performance de que maximiza a precisão da estimação de um sistema de
+detecção de fraude sobre o número *k* de alertas que um investigador
+consegue analisar.
 
 *Precision top-k* é calculada da seguinte forma. Para um determinado dia
 *d*:
@@ -1124,27 +1200,35 @@ operacional de para cada dia da base de teste:
 
 ``` python
 test_df["predictions"] = y_pred[:, 1]
+nb_frauds = []
 prec_top_k_test = []
 for day in test_df["TX_TIME_DAYS"].unique():
     prec_top_k_test.append(precision_top_k_day(test_df.query("TX_TIME_DAYS == @day")))
+    nb_frauds.append(test_df.query("TX_TIME_DAYS == @day")["TX_FRAUD"].sum())
 
+# média de frauds diária
+print(f"avg nb_frauds: {np.mean(nb_frauds)}")
 # media de precision top100
-np.mean(prec_top_k_test)
+print(f"avg precision top100: {np.mean(prec_top_k_test)}")
 ```
 
-    0.4042857142857143
+    avg nb_frauds: 61.42857142857143
+    avg precision top100: 0.4042857142857143
 
-O nosso algoritmos é capaz de identificar uma média diária de 40% das
-100 \*\*flagged\* como suspeitas.
+Esse resultado nos diz que o algoritmo de detecção de fraude
+corretamente detectou uma média de 40 transações fraudulentas por dia.
+Ou seja, como uma média de 61 fraudes por dia, esse resultado sugere que
+cerca de 65% das transações fraudulentas foram detectadas pelo
+algoritmo.
 
 Uma vez que tenhamos uma forma de medir a performance operacional do
 sistema, podemos utilizar essa métrica como medida para otimizar os
-algoritmos.
+algoritmos durante o processo de estimação.
 
-Vamos repetir o processo de estimação. Dessa vez utilizando a métrica a
-média *precision-top-k* de cada dia. Para isso, precisamos criar uma
-função que será utilizada junto com o `sklearn`. Para isso usaremos o
-`sklearn.metrics.make_scorer`:
+Vamos repetir o processo de estimação. Dessa vez utilizando a métrica de
+média diária *precision-top-k*. Para isso, precisamos criar uma função
+*custom scorer* com a função `sklearn.metrics.make_scorer` para que seja
+junto com o `sklearn`:
 
 ``` python
 # create a function that receivies y_true, y_pred and computes the daily precision:
@@ -1236,7 +1320,7 @@ print(f"Test score: {np.round(avg_prec_top_100, 2)}")
 
 Assim como anterior, a estratégia de CV foi uma boa alternativa para
 estimar algoritmos em suas diversas configurações e também para obter
-uma estimativa confiável acerca da performance futura do algoritmo.
+uma estimativa confiável acerca da performance operacional do algoritmo.
 
 ## Deployment <a name="deployment"></a>
 
@@ -1257,8 +1341,8 @@ dump(mdl2, "output/model.joblib")
 ```
 
 Algumas considerações precisam ser feitas. Por exemplo, ao desenhar um
-API, o desenvolvedor precisa imaginar como será o dado que será
-utilizado como para o modelo gere previsões.
+API, o desenvolvedor precisa imaginar como será as informações de
+*input* para que o modelo gere previsões.
 
 No caso de presente problema, é provável que dados de transações de
 cartão de crédito contenha apenas as seguintes variáves:
@@ -1269,13 +1353,12 @@ cartão de crédito contenha apenas as seguintes variáves:
 - `TERMINAL_ID`
 - `TX_AMOUNT`
 
-Um primeir obstáculo que surge é como *encode* as variáveis de cliente e
-terminal. Como vimos ao longo da estimação, essas variáveis foram
-*encodadas* com valores históricos calculados. Em um modelo em produção,
-não será possível fazer isso a extração dessas informações a partir de
-dados históricos. Utilizaremos como dicionário, o último valor de cada
-variável calculada para cada customer e terminal. Isso irá ser utilizado
-como um dicionário:
+Um primeiro obstáculo que surge é como realizar o *encode* das variáveis
+de cliente e terminal. Como vimos ao longo da estimação, essas variáveis
+foram *encodadas* com valores históricos calculados. Em um modelo em
+produção, não será possível fazer isso a extração dessas informações a
+partir de dados históricos. Utilizaremos como dicionário, o último valor
+de cada variável calculada para cada customer e terminal:
 
 ``` python
 # save dict
@@ -1297,7 +1380,14 @@ dict_customer = transactions_df[["TX_DATETIME",
 dump(dict_customer, "output/dict_customer.joblib")
 ```
 
-Uma vez que tenhamos os dicionarios das variáveis categoricas e o modelo
+Uma limitação dessa estratégia é que as novas transações pode ser feitas
+por clientes e/ou terminais que não estejam contemplados nos
+dicionários. Para esses casos, o modelo foi criado como um pipeline onde
+está contido uma pré-processamento de imputação. Dessa forma, o
+algoritmo ainda retornará uma previsão para transações com essas
+entidades desconhecidas, porém com pouco menos de precisão.
+
+Uma vez que tenhamos os dicionários das variáveis categóricas e o modelo
 salvos, podemos escrever nosso API usando a biblioteca `Flask`:
 
 ``` python
@@ -1401,6 +1491,6 @@ curl -XPOST -H "Content-Type: application/json" -d @data/transactions_20230901.j
     [link.](https://fraud-detection-handbook.github.io/fraud-detection-handbook/Chapter_3_GettingStarted/SimulatedDataset.html.)
 
 [^2]: As variáveis `TX_TIME_SECONDS`, `TX_TIME_DAYS` são variáveis
-    extraídas a partir da variável de data e `TX_FRAUD_SCENARIO` é uma
-    variável *by-product* do processo de simulação. Elas não serão
-    importantes para o exercício.
+    extraídas a partir da variável de `TX_DATETIME` e
+    `TX_FRAUD_SCENARIO` é uma variável *by-product* do processo de
+    simulação. Elas não serão importantes para o exercício.
