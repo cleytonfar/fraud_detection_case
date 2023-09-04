@@ -1488,7 +1488,7 @@ curl -XPOST -H "Content-Type: application/json" -d @data/transactions_20230901.j
     `simulate_data.py` com os passos necessários. O script `utils.py`
     contem as funções auxiliares necessárias para a execução da
     simulação. Para mais detalhes teóricos, acesse esse
-    [link.](https://fraud-detection-handbook.github.io/fraud-detection-handbook/Chapter_3_GettingStarted/SimulatedDataset.html.)
+    [link.](https://fraud-detection-handbook.github.io/fraud-detection-handbook/Chapter_3_GettingStarted/SimulatedDataset.html)
 
 [^2]: As variáveis `TX_TIME_SECONDS`, `TX_TIME_DAYS` são variáveis
     extraídas a partir da variável de `TX_DATETIME` e
