@@ -1,4 +1,4 @@
-# Stone Case
+# Fraud Detection Case
 Cleyton Farias
 September, 2023
 
